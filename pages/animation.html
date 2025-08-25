@@ -1,0 +1,99 @@
+<!DOCTYPE html>\n<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Animation Sample</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="../assets/css/style.css" />
+<meta name="description" content="Small CSS / JS animation sample." />
+<style>
+  body { padding: 1.4rem 0 2.5rem; }
+  .stage {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    background: linear-gradient(145deg,#151c23,#10161d);
+    border: 1px solid #22303d;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .ball {
+    --size: 56px;
+    position: absolute;
+    width: var(--size);
+    height: var(--size);
+    left: calc(50% - var(--size)/2);
+    top: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ffffff, #4aa3ff 60%, #1f4b73 100%);
+    box-shadow: 0 8px 22px -6px rgba(74,163,255,.55);
+    animation: bounce 2.2s ease-in-out infinite, spin 6s linear infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translate(-50%, 0) scale(1); }
+    45% { transform: translate(-50%, 180px) scale(1.05, .95); }
+    50% { transform: translate(-50%, 188px) scale(.95,1.05); }
+  }
+  @keyframes spin {
+    to { filter: hue-rotate(360deg); }
+  }
+  .controls {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .label-val {
+    font-size: .8rem;
+    opacity: .65;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Animation Sample</h1>
+  <p>Simple CSS + a couple of on-the-fly adjustments. Use sliders to modify speed and size in real-time.</p>
+</header>
+
+<main class="panel">
+  <div class="stage">
+    <div id="ball" class="ball"></div>
+  </div>
+  <div class="controls">
+    <label class="inline-label">Speed
+      <input id="speed" type="range" min="0.5" max="3" step=".05" value="1" />
+      <span class="label-val" id="speedLabel">1.00x</span>
+    </label>
+    <label class="inline-label">Size
+      <input id="size" type="range" min="30" max="120" step="2" value="56" />
+      <span class="label-val" id="sizeLabel">56px</span>
+    </label>
+  </div>
+  <p class="notice">Embed example: <code>&lt;iframe src=".../animation.html" width="400" height="340"&gt;&lt;/iframe&gt;</code></p>
+</main>
+
+<footer>
+  <small>© 2025 rayus86</small>
+</footer>
+
+<script>
+(function(){
+  const ball = document.getElementById('ball');
+  const speed = document.getElementById('speed');
+  const size = document.getElementById('size');
+  const speedLabel = document.getElementById('speedLabel');
+  const sizeLabel = document.getElementById('sizeLabel');
+
+  function update() {
+    const s = parseFloat(speed.value);
+    const sz = parseInt(size.value,10);
+    speedLabel.textContent = s.toFixed(2)+'x';
+    sizeLabel.textContent = sz+'px';
+    ball.style.setProperty('--size', sz+'px');
+    ball.style.animationDuration = (2.2 / s) + 's, ' + (6 / s) + 's';
+  }
+  [speed, size].forEach(el=>el.addEventListener('input', update));
+  update();
+})();
+</script>
+</body>
+</html>
