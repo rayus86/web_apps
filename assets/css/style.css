@@ -1,0 +1,39 @@
+:root { --bg: #0f1115; --panel: #1c2129; --panel-alt: #262d37; --border: #33404f; --accent: #4aa3ff; --accent-glow: #8bc9ff; --text: #eef2f5; --text-dim: #a9b4c0; --good: #4caf50; --warn: #ffc107; --danger: #ff5252; font-size: 16px; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: linear-gradient(145deg,#0f1115,#151a21 55%,#101318); color: var(--text); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+header, footer, main { width: min(1100px, 95%); margin: 0 auto; padding: 1.2rem 0 1.2rem; }
+header h1 { margin: 0 0 .4rem; font-weight: 600; letter-spacing: .5px; background: linear-gradient(90deg,var(--accent),var(--accent-glow)); -webkit-background-clip: text; color: transparent; filter: drop-shadow(0 2px 8px rgba(74,163,255,.35)); }
+p { margin: .4rem 0 .9rem; max-width: 70ch; }
+a { color: var(--accent); text-decoration: none; }
+a:hover, a:focus-visible { text-decoration: underline; outline: none; }
+.page-list { list-style: none; margin: 1rem 0 2rem; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); }
+.page-list a { display: block; background: var(--panel); padding: 1rem .9rem; border: 1px solid var(--border); border-radius: 10px; font-weight: 500; position: relative; transition: background .25s, transform .25s, border-color .25s; }
+.page-list a:hover { background: var(--panel-alt); transform: translateY(-4px); border-color: var(--accent); text-decoration: none; }
+footer { font-size: .85rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-bottom: 3rem; opacity: .9; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: .85rem; background: #10161d; color: #e1f1ff; border-radius: 6px; }
+code { padding: .15rem .4rem; }
+pre { padding: .9rem 1rem; overflow-x: auto; border: 1px solid #22303d; }
+button, input, select { font: inherit; }
+.btn { background: var(--accent); color: #0c1218; border: none; padding: .6rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; letter-spacing: .5px; box-shadow: 0 4px 16px -4px rgba(74,163,255,.5), 0 0 0 0 rgba(74,163,255,.3); transition: box-shadow .4s, transform .25s; }
+.btn:hover { box-shadow: 0 4px 25px -4px rgba(74,163,255,.75), 0 0 0 3px rgba(74,163,255,.15); transform: translateY(-2px); }
+.grid { display: grid; gap: 1rem; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem 1.25rem; position: relative; }
+.panel h2, .panel h3 { margin-top: 0; font-weight: 600; letter-spacing: .5px; }
+.inline-label { display: flex; align-items: center; gap: .75rem; margin: .35rem 0 .55rem; font-size: .9rem; flex-wrap: wrap; }
+.range-wrap { display: flex; flex-direction: column; gap: .4rem; margin: .6rem 0 1rem; }
+input[type=range] { width: 100%; cursor: pointer; }
+.badge { display: inline-block; background: linear-gradient(145deg,#202a33,#1a232b); padding: .25rem .55rem .3rem; border: 1px solid var(--border); border-radius: 6px; font-size: .7rem; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; color: var(--text-dim); }
+.flex { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+.table-like { width: 100%; border-collapse: collapse; font-size: .85rem; margin: .4rem 0; }
+.table-like th, .table-like td { padding: .4rem .55rem; text-align: left; border-bottom: 1px solid #27323d; }
+.metric { font-size: 1.1rem; font-weight: 600; letter-spacing: .8px; }
+.hl { color: var(--accent-glow); font-weight: 600; }
+.notice { font-size: .7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-top: 1.25rem; }
+.autosize-debug { font-size: .65rem; opacity: .55; margin-top: .8rem; }
+@media (max-width: 750px) { header, footer, main { width: 92%; } .flex-col-mobile { flex-direction: column; align-items: stretch; } }
+.pot-diagram { display: grid; grid-template-columns: repeat(5,1fr); gap: .4rem; align-items: center; margin: .75rem 0 1rem; font-size: .75rem; text-align: center; }
+.pot-diagram div { padding: .35rem .25rem .45rem; background: linear-gradient(145deg,#202830,#182127); border: 1px solid #2b3743; border-radius: 6px; position: relative; }
+.pot-diagram .tap { background: linear-gradient(145deg,#283646,#1d2934); border-color: #355068; }
+.sparkline { width: 100%; height: 50px; display: block; }
+.fade-in { animation: fadeIn .6s ease forwards; opacity: 0; }
+@keyframes fadeIn { to { opacity: 1; } }
