@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angular to Linear Velocity Converter with Gemini</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        .output-card {
+            background-color: #f8fafc; /* gray-50 */
+            border: 1px solid #e2e8f0; /* gray-200 */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        .output-card .label {
+            font-size: 0.875rem;
+            color: #475569; /* slate-600 */
+            font-weight: 500;
+        }
+        .output-card .value {
+            font-size: 1.5rem;
+            color: #0f172a; /* slate-900 */
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+        .output-card .unit {
+            font-size: 0.875rem;
+            color: #64748b; /* slate-500 */
+        }
+        .gemini-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .gemini-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .gemini-btn:active {
+            transform: translateY(0px);
+        }
+        .gemini-output {
+            min-height: 110px; /* Reserve space to prevent layout shift */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Angular to Linear Velocity Converter</h1>
+            <p class="mt-2 text-slate-600 max-w-2xl mx-auto">This tool demonstrates how a wheel's rotational speed translates into linear speed, with AI-powered explanations.</p>
+        </header>
+
+        <!-- Main Content: Visualization, Controls, Outputs -->
+        <main class="flex flex-col gap-8">
+
+            <!-- Top Section: Visualization -->
+            <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 flex items-center justify-center min-h-[300px] md:min-h-[400px] w-full">
+                <canvas id="visualization-canvas" class="w-full h-full"></canvas>
+            </div>
+
+            <!-- Bottom Section: Controls & Outputs -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column: Controls -->
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5">
+                        <h2 class="text-xl font-semibold mb-4 text-slate-800">Controls</h2>
+                        <div class="space-y-5">
+                            <div>
+                                <label for="angular-velocity-slider" class="flex justify-between text-sm font-medium text-slate-700">
+                                    <span>Angular Velocity</span>
+                                    <span id="angular-velocity-value" class="font-bold text-indigo-600">180 deg/s</span>
+                                </label>
+                                <input id="angular-velocity-slider" type="range" min="10" max="1080" value="180" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2">
+                            </div>
+                            <div>
+                                <label for="radius-slider" class="flex justify-between text-sm font-medium text-slate-700">
+                                    <span>Wheel Radius</span>
+                                    <span id="radius-value" class="font-bold text-indigo-600">0.3 m</span>
+                                </label>
+                                <input id="radius-slider" type="range" min="0.1" max="1.0" value="0.3" step="0.01" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2">
+                            </div>
+                        </div>
+                         <button id="gemini-button" class="gemini-btn w-full mt-6 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Explain This Scenario ✨
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Outputs -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="output-card">
+                            <div class="label">RPM</div>
+                            <div id="rpm-output" class="value">30.0</div>
+                            <div class="unit">revs / min</div>
+                        </div>
+                        <div class="output-card">
+                            <div class="label">Time per Revolution</div>
+                            <div id="time-output" class="value">2.00</div>
+                            <div class="unit">seconds</div>
+                        </div>
+                        <div class="output-card col-span-2">
+                            <div class="label">Distance per Revolution (Circumference)</div>
+                            <div id="distance-output" class="value">1.88</div>
+                            <div class="unit">meters</div>
+                        </div>
+                        <div class="output-card col-span-2 bg-indigo-50 border-indigo-200">
+                            <div class="label text-indigo-800">Resulting Linear Velocity</div>
+                            <div id="linear-velocity-output" class="value text-indigo-700">0.94</div>
+                            <div class="unit text-indigo-600">meters / second</div>
+                        </div>
+                    </div>
+                     <!-- Gemini Output -->
+                    <div id="gemini-output-card" class="output-card bg-slate-50 border-slate-200 gemini-output">
+                        <div class="label">Real-World Analogy ✨</div>
+                        <p id="gemini-explanation" class="text-slate-800 mt-2 text-base font-medium">Click the button to get an explanation!</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- DOM Element Selection ---
+        const angularVelocitySlider = document.getElementById('angular-velocity-slider');
+        const radiusSlider = document.getElementById('radius-slider');
+        const angularVelocityValue = document.getElementById('angular-velocity-value');
+        const radiusValue = document.getElementById('radius-value');
+
+        const rpmOutput = document.getElementById('rpm-output');
+        const timeOutput = document.getElementById('time-output');
+        const distanceOutput = document.getElementById('distance-output');
+        const linearVelocityOutput = document.getElementById('linear-velocity-output');
+
+        const geminiButton = document.getElementById('gemini-button');
+        const geminiExplanation = document.getElementById('gemini-explanation');
+
+        const canvas = document.getElementById('visualization-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- State & Configuration ---
+        let state = {
+            angularVelocity: 180, // deg/s
+            radius: 0.3, // meters
+            currentAngle: 0, // degrees for animation
+            xPosition: 0, // pixels for animation
+        };
+        let lastTime = 0;
+        const PIXELS_PER_METER = 150; // Scale for visualization
+        const revolutionColors = ['#4f46e5', '#10b981', '#f97316', '#ec4899', '#8b5cf6'];
+
+        // --- Canvas Setup ---
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        // --- Calculation Logic ---
+        function updateCalculations() {
+            const degPerSec = state.angularVelocity;
+            const radiusMeters = state.radius;
+            const rpm = (degPerSec * 60) / 360;
+            const timePerRev = 360 / degPerSec;
+            const circumference = 2 * Math.PI * radiusMeters;
+            const linearVelocity = circumference / timePerRev;
+
+            angularVelocityValue.textContent = `${degPerSec.toFixed(0)} deg/s`;
+            radiusValue.textContent = `${radiusMeters.toFixed(2)} m`;
+            rpmOutput.textContent = rpm.toFixed(1);
+            timeOutput.textContent = timePerRev.toFixed(2);
+            distanceOutput.textContent = circumference.toFixed(2);
+            linearVelocityOutput.textContent = linearVelocity.toFixed(2);
+        }
+
+        // --- Gemini API Integration ---
+        async function getExplanation() {
+            geminiExplanation.innerHTML = '<div class="loader"></div>';
+            geminiButton.disabled = true;
+            geminiButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const radius = state.radius;
+            const angularVelocity = state.angularVelocity;
+            const linearVelocity = parseFloat(linearVelocityOutput.textContent);
+
+            const systemPrompt = "You are a friendly and helpful physics tutor. Your goal is to make physics concepts easy to understand for a high school student.";
+            const userQuery = `A wheel with a radius of ${radius.toFixed(2)} meters is spinning at ${angularVelocity.toFixed(0)} degrees per second. This results in a linear velocity of ${linearVelocity.toFixed(2)} meters per second. Provide a simple, one-sentence, real-world analogy to help someone visualize this speed. For example: "This is roughly the speed of a person walking leisurely." or "This is similar to the speed of a bowling ball rolling down the lane." Keep the analogy concise, relatable, and easy to picture. Do not repeat the numbers in your response.`;
+            
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                let response;
+                let retries = 3;
+                let delay = 1000;
+                for (let i = 0; i < retries; i++) {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    geminiExplanation.textContent = text;
+                } else {
+                    geminiExplanation.textContent = 'Could not get an explanation. Please try again.';
+                }
+            } catch (error) {
+                console.error('Gemini API call failed:', error);
+                geminiExplanation.textContent = 'An error occurred. Please check the console.';
+            } finally {
+                geminiButton.disabled = false;
+                geminiButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        // --- Drawing Logic ---
+        function draw(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const radiusPixels = state.radius * PIXELS_PER_METER;
+            const wheelY = canvas.height - radiusPixels - 20;
+
+            // Update angles and position
+            const angleDelta = state.angularVelocity * deltaTime;
+            state.currentAngle = (state.currentAngle + angleDelta) % 360;
+            state.xPosition += (state.angularVelocity * (Math.PI / 180)) * radiusPixels * deltaTime;
+
+            // Reset wheel position if it goes off-screen
+            if (state.xPosition - radiusPixels > canvas.width) {
+                state.xPosition = -radiusPixels;
+            }
+            
+            const wheelX = state.xPosition;
+            const angleRadians = state.currentAngle * (Math.PI / 180);
+
+            // --- Draw elements ---
+
+            // 1. Draw the ground
+            ctx.beginPath();
+            ctx.moveTo(0, wheelY + radiusPixels);
+            ctx.lineTo(canvas.width, wheelY + radiusPixels);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 2. Draw the "unrolled" distance line (segmented)
+            const circumferencePixels = 2 * Math.PI * state.radius * PIXELS_PER_METER;
+            const groundY = wheelY + radiusPixels + 10;
+            const completedRevolutions = Math.floor(state.xPosition / circumferencePixels);
+
+            // Draw the completed revolution segments
+            for (let i = 0; i < completedRevolutions; i++) {
+                const startX = i * circumferencePixels;
+                const endX = (i + 1) * circumferencePixels;
+                const segmentColor = revolutionColors[i % revolutionColors.length];
+                
+                ctx.beginPath();
+                ctx.moveTo(startX, groundY);
+                ctx.lineTo(endX, groundY);
+                ctx.strokeStyle = segmentColor;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+
+            // Draw the current, in-progress segment
+            const currentRevolutionStartX = completedRevolutions * circumferencePixels;
+            if (state.xPosition > currentRevolutionStartX) {
+                const currentSegmentColor = revolutionColors[completedRevolutions % revolutionColors.length];
+                ctx.beginPath();
+                ctx.moveTo(currentRevolutionStartX, groundY);
+                ctx.lineTo(state.xPosition, groundY);
+                ctx.strokeStyle = currentSegmentColor;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+            
+            // 3. Draw the wheel
+            ctx.save();
+            ctx.translate(wheelX, wheelY);
+            ctx.rotate(angleRadians);
+            ctx.beginPath();
+            ctx.arc(0, 0, radiusPixels, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(129, 140, 248, 0.2)';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#4f46e5';
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(radiusPixels, 0);
+            ctx.strokeStyle = '#ef4444';
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#0f172a';
+            ctx.fill();
+            ctx.restore();
+
+            // --- Draw Text Labels ---
+            ctx.fillStyle = '#1e293b';
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'left';
+            const linearVelocity = parseFloat(linearVelocityOutput.textContent);
+            ctx.fillText(`Linear Speed: ${linearVelocity.toFixed(2)} m/s`, 10, 25);
+            ctx.fillText(`Rotation: ${Math.floor(state.currentAngle)}°`, 10, 45);
+
+            requestAnimationFrame(draw);
+        }
+
+        // --- Event Listeners ---
+        angularVelocitySlider.addEventListener('input', (e) => {
+            state.angularVelocity = parseFloat(e.target.value);
+            updateCalculations();
+        });
+
+        radiusSlider.addEventListener('input', (e) => {
+            state.radius = parseFloat(e.target.value);
+            state.xPosition = -(state.radius * PIXELS_PER_METER); 
+            updateCalculations();
+        });
+
+        geminiButton.addEventListener('click', getExplanation);
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- Initialization ---
+        resizeCanvas();
+        updateCalculations();
+        requestAnimationFrame(draw);
+
+    </script>
+</body>
+</html>
