@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWM Servo Control Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .servo-arm-group {
+            /* The origin is now the SVG's absolute (60, 60) point */
+            transform-origin: 60px 60px;
+            transition: transform 0.1s linear; /* Use linear for smoother manual control */
+        }
+        /* Custom styles for number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-5xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-400">PWM Servo Control Simulation</h1>
+            <p class="text-gray-400 mt-2 max-w-3xl mx-auto">
+                Explore how the <span class="font-bold text-white">width</span> of a PWM pulse determines a servo motor's precise angle. Adjust the pulse range to see how different servos are calibrated.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            
+            <div class="bg-gray-700 p-6 rounded-xl space-y-4">
+                <!-- Main Control -->
+                <div>
+                    <label for="angleSlider" class="block mb-2 text-lg font-medium text-gray-300">Servo Angle</label>
+                    <input id="angleSlider" type="range" min="0" max="180" value="90" class="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg accent-teal-500">
+                </div>
+                
+                <!-- Data Displays -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+                        <span class="text-sm text-gray-400">Current Angle:</span>
+                        <span id="angleValue" class="text-xl font-semibold text-teal-400">90°</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+                        <span class="text-sm text-gray-400">Pulse Width:</span>
+                        <span id="pulseWidthValue" class="text-xl font-semibold text-teal-400">1.50 ms</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+                        <span class="text-sm text-gray-400">Frequency:</span>
+                        <span class="text-xl font-semibold text-teal-400">50 Hz</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+                        <span class="text-sm text-gray-400">Duty Cycle:</span>
+                        <span id="dutyCycleValue" class="text-xl font-semibold text-teal-400">7.5%</span>
+                    </div>
+                </div>
+
+                <!-- Pulse Configuration -->
+                <div class="pt-4 border-t border-gray-600">
+                    <h3 class="text-lg font-medium text-gray-300 mb-3">Pulse Calibration</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                           <label for="minPulse" class="block text-sm font-medium text-gray-400 mb-1">Min Pulse (0°)</label>
+                           <input type="number" id="minPulse" value="1.0" step="0.1" class="w-full bg-gray-800 border border-gray-600 text-white rounded-lg p-2 text-center">
+                        </div>
+                        <div>
+                           <label for="maxPulse" class="block text-sm font-medium text-gray-400 mb-1">Max Pulse (180°)</label>
+                           <input type="number" id="maxPulse" value="2.0" step="0.1" class="w-full bg-gray-800 border border-gray-600 text-white rounded-lg p-2 text-center">
+                        </div>
+                    </div>
+                </div>
+                 
+                <div class="text-sm text-gray-500 pt-4 border-t border-gray-600">
+                     <h3 class="font-semibold text-gray-300 mb-2">How it Works:</h3>
+                     <p>A servo motor expects a pulse every 20 milliseconds (a 50Hz frequency). The <span class="font-bold text-white">duration</span> of that pulse dictates its angle. While many servos use a 1.0ms to 2.0ms pulse range, this can vary. Use the calibration settings to match the behavior of a specific servo.</p>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <div>
+                    <h2 class="text-xl font-semibold mb-3 text-center text-gray-300">PWM Signal (20ms Period)</h2>
+                    <div class="bg-gray-900 rounded-lg p-4">
+                        <canvas id="pwmCanvas" class="w-full h-40"></canvas>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="text-xl font-semibold mb-3 text-center text-gray-300">Servo Position</h2>
+                    <div class="flex justify-center items-center h-48">
+                        <svg class="w-48 h-48" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                           <!-- Servo Body -->
+                           <rect x="30" y="30" width="60" height="60" rx="8" ry="8" fill="#4B5563"/>
+                           <circle cx="60" cy="60" r="25" fill="#374151"/>
+                           <!-- Servo Arm Group - for clean rotation -->
+                           <g id="servoArmGroup" class="servo-arm-group">
+                               <!-- The actual arm, drawn relative to the pivot -->
+                               <rect x="60" y="55" width="45" height="10" rx="5" ry="5" fill="#2DD4BF"/>
+                               <!-- The central pivot point on top -->
+                               <circle cx="60" cy="60" r="5" fill="#9CA3AF"/>
+                           </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const slider = document.getElementById('angleSlider');
+        const angleValue = document.getElementById('angleValue');
+        const pulseWidthValue = document.getElementById('pulseWidthValue');
+        const dutyCycleValue = document.getElementById('dutyCycleValue');
+        const servoArmGroup = document.getElementById('servoArmGroup');
+        const minPulseInput = document.getElementById('minPulse');
+        const maxPulseInput = document.getElementById('maxPulse');
+        const canvas = document.getElementById('pwmCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const PERIOD_MS = 20; // 50Hz frequency
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            updateSimulation(); 
+        }
+
+        function drawPWM(pulseWidth) {
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#2DD4BF';
+            ctx.fillStyle = '#9CA3AF';
+            ctx.lineWidth = 2.5;
+            ctx.font = '12px Inter';
+            
+            const highLevelY = height * 0.2;
+            const lowLevelY = height * 0.8;
+
+            ctx.fillText('5V', 5, highLevelY - 5);
+            ctx.fillText('0V', 5, lowLevelY + 15);
+            
+            const pulseWidthPx = (pulseWidth / PERIOD_MS) * width;
+            const periodWidthPx = width;
+
+            ctx.beginPath();
+            ctx.moveTo(0, lowLevelY);
+            ctx.lineTo(0, highLevelY); 
+            ctx.lineTo(pulseWidthPx, highLevelY);
+            ctx.lineTo(pulseWidthPx, lowLevelY);
+            ctx.lineTo(periodWidthPx, lowLevelY);
+            ctx.stroke();
+
+            ctx.fillStyle = '#6B7280';
+            ctx.fillText('0ms', 0, lowLevelY + 15);
+            ctx.fillText(`${PERIOD_MS}ms`, periodWidthPx - 30, lowLevelY + 15);
+            
+            if(pulseWidth > 0.1) {
+                ctx.fillStyle = '#2DD4BF';
+                ctx.fillText(`${pulseWidth.toFixed(2)}ms`, pulseWidthPx + 5, highLevelY + 15);
+            }
+        }
+
+        function updateSimulation() {
+            const angle = parseInt(slider.value);
+            const minPulse = parseFloat(minPulseInput.value) || 0.5;
+            const maxPulse = parseFloat(maxPulseInput.value) || 2.5;
+            
+            // Map the angle (0-180) to the configurable pulse width
+            const pulseWidth = minPulse + (angle / 180) * (maxPulse - minPulse);
+            const dutyCycle = (pulseWidth / PERIOD_MS) * 100;
+
+            // Update text displays
+            angleValue.textContent = `${angle}°`;
+            pulseWidthValue.textContent = `${pulseWidth.toFixed(2)} ms`;
+            dutyCycleValue.textContent = `${dutyCycle.toFixed(1)}%`;
+            
+            // Update servo arm rotation
+            // Map angle 0-180 to a rotation of -90deg to +90deg for visualization
+            const rotationDegrees = angle - 90;
+            servoArmGroup.style.transform = `rotate(${rotationDegrees}deg)`;
+
+            drawPWM(pulseWidth);
+        }
+        
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+        slider.addEventListener('input', updateSimulation);
+        minPulseInput.addEventListener('input', updateSimulation);
+        maxPulseInput.addEventListener('input', updateSimulation);
+
+        // Initial Start
+        resizeCanvas();
+
+    </script>
+</body>
+</html>
