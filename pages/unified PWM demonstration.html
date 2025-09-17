@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified PWM Demonstrator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-active {
+            background-color: #14B8A6; /* Teal 500 */
+            color: white;
+        }
+        .btn-inactive {
+            background-color: #374151; /* Gray 700 */
+            color: #D1D5DB; /* Gray 300 */
+        }
+        .visualization-container {
+            display: none;
+        }
+        .servo-arm-group {
+            transform-origin: 60px 60px; /* Pivot from the center of the SVG circle */
+        }
+        .led-light {
+            transition: box-shadow 0.1s linear, background-color 0.1s linear;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-5xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-400">Unified PWM Demonstrator</h1>
+            <p class="text-gray-400 mt-2">See how PWM controls a Servo, a Motor, and an LED.</p>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="flex justify-center space-x-2 md:space-x-4 mb-6 bg-gray-900 p-2 rounded-xl">
+            <button id="servoBtn" class="btn-active flex-1 py-2 px-4 rounded-lg font-semibold transition-colors duration-200">Servo Angle</button>
+            <button id="wheelBtn" class="btn-inactive flex-1 py-2 px-4 rounded-lg font-semibold transition-colors duration-200">Wheel Speed</button>
+            <button id="ledBtn" class="btn-inactive flex-1 py-2 px-4 rounded-lg font-semibold transition-colors duration-200">LED Brightness</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            
+            <!-- Left Column: Controls & Info -->
+            <div class="bg-gray-700 p-6 rounded-xl space-y-4">
+                <div>
+                    <label id="sliderLabel" for="pwmSlider" class="block mb-2 text-lg font-medium text-gray-300">Servo Angle</label>
+                    <input id="pwmSlider" type="range" min="0" max="180" value="90" class="w-full h-3 bg-gray-600 rounded-lg appearance-none cursor-pointer range-lg accent-teal-500">
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-gray-800 p-3 rounded-lg">
+                        <span id="value1Label" class="block text-sm text-gray-400">Current Angle:</span>
+                        <span id="value1Display" class="text-xl font-semibold text-teal-400">90°</span>
+                    </div>
+                    <div class="bg-gray-800 p-3 rounded-lg">
+                        <span id="value2Label" class="block text-sm text-gray-400">Pulse Width:</span>
+                        <span id="value2Display" class="text-xl font-semibold text-teal-400">1.50 ms</span>
+                    </div>
+                </div>
+                
+                <div class="text-sm text-gray-400 pt-4 border-t border-gray-600">
+                     <h3 class="font-semibold text-gray-300 mb-2">How it Works:</h3>
+                     <p id="explanationText">A servo motor expects a pulse every 20ms (50Hz). The <span class="font-bold text-white">duration</span> of the pulse (e.g., 1.0ms to 2.0ms) dictates its angle, not the overall duty cycle.</p>
+                </div>
+            </div>
+
+            <!-- Right Column: Visualizations -->
+            <div class="space-y-4">
+                <div>
+                    <h2 class="text-xl font-semibold mb-2 text-center text-gray-300">PWM Signal</h2>
+                    <div class="bg-gray-900 rounded-lg p-2">
+                        <canvas id="pwmCanvas" class="w-full h-32"></canvas>
+                    </div>
+                </div>
+
+                <div class="relative h-48 flex items-center justify-center">
+                    <!-- Servo Visualization -->
+                    <div id="servoContainer" class="visualization-container">
+                        <svg class="w-48 h-48" viewBox="0 0 120 120">
+                           <rect x="30" y="30" width="60" height="60" rx="8" fill="#4B5563"/>
+                           <circle cx="60" cy="60" r="25" fill="#374151"/>
+                           <g id="servoArmGroup" class="servo-arm-group">
+                               <rect x="60" y="55" width="45" height="10" rx="5" fill="#2DD4BF"/>
+                               <circle cx="60" cy="60" r="5" fill="#9CA3AF"/>
+                           </g>
+                        </svg>
+                    </div>
+                    <!-- Wheel Visualization -->
+                    <div id="wheelContainer" class="visualization-container">
+                        <svg id="wheel" class="w-40 h-40" viewBox="0 0 100 100">
+                            <!--  -->
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="#6B7280" stroke-width="4"/>
+                            <circle cx="50" cy="50" r="10" fill="#4B5563"/>
+                            <line x1="50" y1="50" x2="50" y2="8" stroke="#4B5563" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="50" y1="50" x2="92" y2="50" stroke="#4B5563" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="50" y1="50" x2="50" y2="92" stroke="#4B5563" stroke-width="6" stroke-linecap="round"/>
+                            <line x1="50" y1="50" x2="8" y2="50" stroke="#4B5563" stroke-width="6" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <!-- LED Visualization -->
+                    <div id="ledContainer" class="visualization-container">
+                        <div class="w-32 h-32 rounded-full flex items-center justify-center bg-gray-900">
+                           <div id="ledLight" class="w-24 h-24 rounded-full" style="background-color: rgba(20, 184, 166, 0.5); box-shadow: 0 0 0px 0px rgba(20, 184, 166, 0.7);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            mode: 'servo', // 'servo', 'wheel', or 'led'
+            sliderValue: 90,
+            wheelRotation: 0,
+            pwmOffset: 0,
+            lastTimestamp: 0,
+            // Servo config
+            minPulse: 1.0,
+            maxPulse: 2.0,
+            period: 20, // 50Hz
+            // Wheel config
+            maxRpm: 240,
+        };
+
+        // DOM Elements
+        const slider = document.getElementById('pwmSlider');
+        const elements = {
+            buttons: {
+                servo: document.getElementById('servoBtn'),
+                wheel: document.getElementById('wheelBtn'),
+                led: document.getElementById('ledBtn'),
+            },
+            containers: {
+                servo: document.getElementById('servoContainer'),
+                wheel: document.getElementById('wheelContainer'),
+                led: document.getElementById('ledContainer'),
+            },
+            sliderLabel: document.getElementById('sliderLabel'),
+            value1Label: document.getElementById('value1Label'),
+            value1Display: document.getElementById('value1Display'),
+            value2Label: document.getElementById('value2Label'),
+            value2Display: document.getElementById('value2Display'),
+            explanationText: document.getElementById('explanationText'),
+            servoArm: document.getElementById('servoArmGroup'),
+            wheel: document.getElementById('wheel'),
+            ledLight: document.getElementById('ledLight'),
+            canvas: document.getElementById('pwmCanvas'),
+        };
+        const ctx = elements.canvas.getContext('2d');
+
+        // --- Mode Switching Logic ---
+        function setMode(newMode) {
+            state.mode = newMode;
+            
+            // Update button styles
+            for (const key in elements.buttons) {
+                elements.buttons[key].classList.remove('btn-active', 'btn-inactive');
+                elements.buttons[key].classList.add(key === newMode ? 'btn-active' : 'btn-inactive');
+            }
+
+            // Update UI text and slider config based on mode
+            switch (newMode) {
+                case 'servo':
+                    slider.min = 0;
+                    slider.max = 180;
+                    slider.value = 90;
+                    elements.sliderLabel.textContent = 'Servo Angle';
+                    elements.value1Label.textContent = 'Current Angle:';
+                    elements.value2Label.textContent = 'Pulse Width:';
+                    elements.explanationText.innerHTML = `A servo motor expects a pulse every 20ms (50Hz). The <span class="font-bold text-white">duration</span> of the pulse (e.g., 1.0ms to 2.0ms) dictates its angle, not the overall duty cycle.`;
+                    break;
+                case 'wheel':
+                    slider.min = 0;
+                    slider.max = 100;
+                    slider.value = 50;
+                    elements.sliderLabel.textContent = 'Speed (Duty Cycle)';
+                    elements.value1Label.textContent = 'Duty Cycle:';
+                    elements.value2Label.textContent = 'Current RPM:';
+                    elements.explanationText.innerHTML = `For a DC motor, the <span class="font-bold text-white">duty cycle</span> (percentage of "on" time) averages the voltage, directly controlling its speed.`;
+                    break;
+                case 'led':
+                    slider.min = 0;
+                    slider.max = 100;
+                    slider.value = 50;
+                    elements.sliderLabel.textContent = 'Brightness (Duty Cycle)';
+                    elements.value1Label.textContent = 'Duty Cycle:';
+                    elements.value2Label.textContent = 'Power Level:';
+                    elements.explanationText.innerHTML = `By switching on and off rapidly, PWM controls an LED's <span class="font-bold text-white">apparent brightness</span>. A higher duty cycle means more "on" time and a brighter light.`;
+                    break;
+            }
+            
+            // Show the correct visualization container
+            for (const key in elements.containers) {
+                elements.containers[key].style.display = key === newMode ? 'flex' : 'none';
+            }
+            
+            handleSliderInput();
+        }
+
+        // --- Update & Drawing Logic ---
+        function handleSliderInput() {
+            state.sliderValue = parseInt(slider.value);
+            updateUI();
+        }
+
+        function updateUI() {
+            let dutyCycle, pulseWidth;
+            
+            switch (state.mode) {
+                case 'servo':
+                    const angle = state.sliderValue;
+                    pulseWidth = state.minPulse + (angle / 180) * (state.maxPulse - state.minPulse);
+                    dutyCycle = (pulseWidth / state.period) * 100;
+                    
+                    elements.value1Display.textContent = `${angle}°`;
+                    elements.value2Display.textContent = `${pulseWidth.toFixed(2)} ms`;
+                    
+                    const rotationDegrees = angle - 90;
+                    elements.servoArm.style.transform = `rotate(${rotationDegrees}deg)`;
+                    break;
+
+                case 'wheel':
+                    dutyCycle = state.sliderValue;
+                    const currentRpm = state.maxRpm * (dutyCycle / 100);
+                    
+                    elements.value1Display.textContent = `${dutyCycle}%`;
+                    elements.value2Display.textContent = `${currentRpm.toFixed(0)} RPM`;
+                    break;
+
+                case 'led':
+                    dutyCycle = state.sliderValue;
+                    const power = dutyCycle;
+                    
+                    elements.value1Display.textContent = `${dutyCycle}%`;
+                    elements.value2Display.textContent = `${power.toFixed(0)}%`;
+
+                    const brightness = power / 100;
+                    elements.ledLight.style.backgroundColor = `rgba(20, 184, 166, ${0.2 + brightness * 0.8})`;
+                    elements.ledLight.style.boxShadow = `0 0 ${brightness * 30}px ${brightness * 5}px rgba(20, 184, 166, ${brightness * 0.7})`;
+                    break;
+            }
+        }
+        
+        function drawPWM(timestamp) {
+            const width = elements.canvas.clientWidth;
+            const height = elements.canvas.clientHeight;
+            ctx.clearRect(0, 0, elements.canvas.width, elements.canvas.height);
+            
+            let dutyCycle;
+            if (state.mode === 'servo') {
+                 const pulseWidth = state.minPulse + (state.sliderValue / 180) * (state.maxPulse - state.minPulse);
+                 dutyCycle = (pulseWidth / state.period) * 100;
+            } else {
+                 dutyCycle = state.sliderValue;
+            }
+
+            const periodWidthPx = width * 0.8; // One period takes 80% of canvas width
+            const highWidthPx = periodWidthPx * (dutyCycle / 100);
+            
+            const highLevelY = height * 0.2;
+            const lowLevelY = height * 0.8;
+
+            ctx.strokeStyle = '#2DD4BF';
+            ctx.lineWidth = 2.5;
+
+            // Draw two cycles of the wave for seamless scrolling
+            for (let i = -1; i < 2; i++) {
+                const startX = state.pwmOffset + (i * periodWidthPx);
+                ctx.beginPath();
+                ctx.moveTo(startX, lowLevelY);
+                ctx.lineTo(startX, highLevelY);
+                ctx.lineTo(startX + highWidthPx, highLevelY);
+                ctx.lineTo(startX + highWidthPx, lowLevelY);
+                ctx.lineTo(startX + periodWidthPx, lowLevelY);
+                ctx.stroke();
+            }
+        }
+
+        // --- Main Animation Loop ---
+        function animate(timestamp) {
+            if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+            const deltaTime = timestamp - state.lastTimestamp;
+            state.lastTimestamp = timestamp;
+
+            // Animate wheel
+            if (state.mode === 'wheel') {
+                const dutyCycle = state.sliderValue;
+                const currentRpm = state.maxRpm * (dutyCycle / 100);
+                const degreesPerMs = currentRpm * 360 / 60000;
+                state.wheelRotation += degreesPerMs * deltaTime;
+                elements.wheel.style.transform = `rotate(${state.wheelRotation}deg)`;
+            }
+
+            // Animate PWM scroll
+            const scrollSpeed = state.mode === 'wheel' ? 1 + (state.sliderValue / 25) : 3;
+            state.pwmOffset -= scrollSpeed * (deltaTime / 16); // normalize speed
+            const periodWidthPx = elements.canvas.clientWidth * 0.8;
+            if (state.pwmOffset < -periodWidthPx) {
+                state.pwmOffset += periodWidthPx;
+            }
+            
+            drawPWM();
+            requestAnimationFrame(animate);
+        }
+
+        // --- Initial Setup ---
+        function init() {
+            // Canvas setup for high-DPI screens
+            const dpr = window.devicePixelRatio || 1;
+            const rect = elements.canvas.getBoundingClientRect();
+            elements.canvas.width = rect.width * dpr;
+            elements.canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            // Event Listeners
+            slider.addEventListener('input', handleSliderInput);
+            elements.buttons.servo.addEventListener('click', () => setMode('servo'));
+            elements.buttons.wheel.addEventListener('click', () => setMode('wheel'));
+            elements.buttons.led.addEventListener('click', () => setMode('led'));
+            window.addEventListener('resize', init); // Recalculate canvas on resize
+
+            // Set initial state
+            setMode('servo');
+        }
+
+        init();
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>
