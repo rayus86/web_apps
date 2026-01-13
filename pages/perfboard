@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro PCB Planning Sheet</title>
+    <style>
+        :root {
+            /* Standard Perfboard Pitch is 0.1 inch (2.54mm). */
+            --base-pitch: 0.1in; 
+            --scale-factor: 1; 
+            
+            /* Dynamic sizing */
+            --cell-size: calc(var(--base-pitch) * var(--scale-factor));
+            --hole-size: calc(var(--cell-size) * 0.65);
+            
+            /* Oval Solder Pad Sizing */
+            --pad-width: calc(var(--cell-size) * 1.6);
+            --pad-height: calc(var(--cell-size) * 0.75);
+            
+            --border-color: #333;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        /* --- CONTROL PANEL --- */
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #0056b3; }
+        button.print-btn { background-color: #28a745; }
+        button.print-btn:hover { background-color: #218838; }
+
+        /* --- SHEET LAYOUT --- */
+        .sheet {
+            background: white;
+            width: 100%;
+            display: inline-block; 
+            min-width: 850px; 
+            margin: 0 auto;
+            padding: 40px;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* 1. HEADER SECTION */
+        .header-section {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+        }
+
+        .meta-box {
+            width: 400px;
+            border: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 8px;
+            border-bottom: 2px solid var(--border-color);
+            background: #fff;
+        }
+
+        .meta-row {
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .meta-row:last-child { border-bottom: none; }
+        .meta-label { width: 90px; font-weight: 600; }
+
+        /* 2. GRID AREA */
+        .grids-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px; 
+            justify-content: space-evenly; 
+            margin-bottom: 30px;
+        }
+
+        .single-board-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            page-break-inside: avoid; 
+            break-inside: avoid;
+        }
+
+        .board-title {
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            padding-bottom: 2px;
+            color: #555;
+        }
+
+        /* PCB FRAME Styling */
+        .pcb-frame {
+            border: 3px solid #3a4a3b; /* Dark Greenish Border */
+            border-radius: 6px;
+            padding: 10px;
+            background-color: transparent; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Mounting Holes Visuals (Corners) */
+        .mount-hole {
+            width: 12px;
+            height: 12px;
+            border: 1px solid #aaa;
+            border-radius: 50%;
+            position: absolute;
+            background: #fff;
+        }
+        .mh-tl { top: 4px; left: 4px; }
+        .mh-tr { top: 4px; right: 4px; }
+        .mh-bl { bottom: 20px; left: 4px; } /* Above text */
+        .mh-br { bottom: 20px; right: 4px; }
+
+        table.perf-grid {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .perf-grid td, .perf-grid th {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+            width: var(--cell-size);
+            height: var(--cell-size);
+            box-sizing: border-box;
+            line-height: 1;
+        }
+
+        /* Standard Round Hole */
+        .hole {
+            width: var(--hole-size);
+            height: var(--hole-size);
+            border: 1px solid #444;
+            border-radius: 50%;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        /* Oval Solder Pad */
+        .pad-cell {
+            width: calc(var(--pad-width) + 4px) !important;
+        }
+        .pad {
+            width: var(--pad-width);
+            height: var(--pad-height);
+            border: 1px solid #444;
+            border-radius: 10px;
+            margin: 0 auto;
+            background: #e8e8e8;
+        }
+
+        .coord-h { 
+            font-weight: bold; 
+            font-size: calc(var(--cell-size) * 0.5); 
+            color: #444;
+        } 
+        .coord-v { 
+            font-weight: bold; 
+            font-size: calc(var(--cell-size) * 0.45); 
+            color: #444;
+            padding: 0 4px;
+        } 
+
+        /* Dimensions Silkscreen Text */
+        .pcb-dimensions {
+            margin-top: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 11px;
+            color: #444;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* 3. NOTES SECTION */
+        .notes-section {
+            width: 100%;
+            page-break-inside: avoid;
+        }
+
+        .notes-box {
+            width: 100%;
+            height: 150px;
+            border: 2px solid var(--border-color);
+            position: relative;
+        }
+        
+        .notes-label {
+            border-bottom: 1px solid var(--border-color);
+            padding: 5px 10px;
+            font-weight: bold;
+            background: #fff;
+            font-size: 14px;
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            body { background: none; padding: 0; margin: 0; }
+            .controls { display: none; }
+            .sheet { 
+                box-shadow: none; 
+                padding: 0.25in; 
+                width: auto; 
+                min-width: 0;
+                transform: none; 
+                left: 0;
+                display: block;
+            }
+            .hole, .pad, .pcb-frame, .mount-hole { -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <div class="input-group">
+            <label>Board Count</label>
+            <input type="number" id="countInput" value="2" min="1" max="10">
+        </div>
+        <div class="input-group">
+            <label>Cols (Width)</label>
+            <input type="number" id="colsInput" value="24" min="5" max="100">
+        </div>
+        <div class="input-group">
+            <label>Rows (Height)</label>
+            <input type="number" id="rowsInput" value="18" min="5" max="60">
+        </div>
+        <div class="input-group">
+            <label>Scale (1.0 = Real)</label>
+            <input type="number" id="scaleInput" value="1.0" min="0.5" max="4.0" step="0.1" onchange="updateScale()">
+        </div>
+        <button onclick="generateProject()">Update View</button>
+        <button class="print-btn" onclick="window.print()">Print Project</button>
+    </div>
+
+    <div class="sheet">
+        
+        <div class="header-section">
+            <div class="meta-box">
+                <div class="meta-title">Project Planning Sheet</div>
+                <div class="meta-row"><span class="meta-label">Project</span></div>
+                <div class="meta-row"><span class="meta-label">Student</span></div>
+                <div class="meta-row"><span class="meta-label">Date</span></div>
+                <div class="meta-row"><span class="meta-label">Version</span> <span id="scaleDisplay" style="margin-left:auto; color:#999; font-size:10px;">Scale: 1:1</span></div>
+            </div>
+        </div>
+
+        <div class="grids-wrapper" id="gridsContainer"></div>
+
+        <div class="notes-section">
+            <div class="notes-box">
+                <div class="notes-label">Project Notes / Component List</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateScale() {
+            const scale = document.getElementById('scaleInput').value;
+            document.documentElement.style.setProperty('--scale-factor', scale);
+            const text = (scale == 1.0) ? "Scale: 1:1 (Real)" : "Scale: " + scale + "x";
+            document.getElementById('scaleDisplay').innerText = text;
+        }
+
+        // --- Common Green Perfboard Size Lookup ---
+        function getBoardSizeText(cols, rows) {
+            // Normalize so 18x24 matches 24x18
+            const dim1 = Math.min(cols, rows);
+            const dim2 = Math.max(cols, rows);
+            
+            // Standard hole counts (Approximate)
+            if (dim1 === 6 && dim2 === 28) return "Standard 2x8 cm";
+            if (dim1 === 10 && dim2 === 24) return "Standard 3x7 cm";
+            if (dim1 === 14 && dim2 === 20) return "Standard 4x6 cm";
+            if (dim1 === 18 && dim2 === 24) return "Standard 5x7 cm";
+            if (dim1 === 22 && dim2 === 27) return "Standard 6x8 cm";
+            if (dim1 === 26 && dim2 === 31) return "Standard 7x9 cm";
+            
+            // Fallback: Calculate physical size with a 2.5mm margin on each side (5mm total)
+            const w = ((cols * 2.54) + 5).toFixed(1);
+            const h = ((rows * 2.54) + 5).toFixed(1);
+            return `${cols}x${rows} Holes • Approx ${w} x ${h} mm`;
+        }
+
+        function generateProject() {
+            updateScale();
+            const count = parseInt(document.getElementById('countInput').value);
+            const cols = parseInt(document.getElementById('colsInput').value);
+            const rows = parseInt(document.getElementById('rowsInput').value);
+            const container = document.getElementById('gridsContainer');
+            
+            const sizeText = getBoardSizeText(cols, rows);
+            
+            container.innerHTML = ''; 
+
+            for(let i = 0; i < count; i++) {
+                const unit = document.createElement('div');
+                unit.className = 'single-board-unit';
+
+                const title = document.createElement('div');
+                title.className = 'board-title';
+                title.innerText = "Board " + (i + 1) + ": _________________";
+                unit.appendChild(title);
+
+                // PCB FRAME DIV
+                const pcbFrame = document.createElement('div');
+                pcbFrame.className = 'pcb-frame';
+                
+                // Add fake mounting holes
+                pcbFrame.innerHTML += `
+                    <div class="mount-hole mh-tl"></div>
+                    <div class="mount-hole mh-tr"></div>
+                    <div class="mount-hole mh-bl"></div>
+                    <div class="mount-hole mh-br"></div>
+                `;
+
+                const table = document.createElement('table');
+                table.className = 'perf-grid';
+                
+                // --- HEADER (Letters) ---
+                let thead = document.createElement('thead');
+                let trTop = document.createElement('tr');
+                trTop.appendChild(document.createElement('th')); 
+                trTop.appendChild(document.createElement('th')); 
+                for (let c = 0; c < cols; c++) {
+                    let th = document.createElement('th');
+                    th.className = 'coord-h';
+                    th.innerText = getColLabel(c);
+                    trTop.appendChild(th);
+                }
+                trTop.appendChild(document.createElement('th')); 
+                trTop.appendChild(document.createElement('th')); 
+                thead.appendChild(trTop);
+                table.appendChild(thead);
+
+                // --- BODY ---
+                // Loop COUNTS DOWN (Row 'rows' at top, Row '1' at bottom)
+                let tbody = document.createElement('tbody');
+                
+                for (let r = rows; r >= 1; r--) {
+                    let tr = document.createElement('tr');
+                    let label = r.toString().padStart(2, '0');
+                    
+                    // 1. Left Label
+                    let tdLeft = document.createElement('td');
+                    tdLeft.className = 'coord-v';
+                    tdLeft.innerText = label;
+                    tr.appendChild(tdLeft);
+
+                    // 2. Left PAD (Logic: No pads on Top or Bottom rows)
+                    let tdPadL = document.createElement('td');
+                    tdPadL.className = 'pad-cell';
+                    if (r !== rows && r !== 1) {
+                         let padL = document.createElement('div');
+                         padL.className = 'pad';
+                         tdPadL.appendChild(padL);
+                    }
+                    tr.appendChild(tdPadL);
+
+                    // 3. Grid Holes
+                    for (let c = 0; c < cols; c++) {
+                        let td = document.createElement('td');
+                        let hole = document.createElement('div');
+                        hole.className = 'hole';
+                        td.appendChild(hole);
+                        tr.appendChild(td);
+                    }
+
+                    // 4. Right PAD (Logic: No pads on Top or Bottom rows)
+                    let tdPadR = document.createElement('td');
+                    tdPadR.className = 'pad-cell';
+                    if (r !== rows && r !== 1) {
+                        let padR = document.createElement('div');
+                        padR.className = 'pad';
+                        tdPadR.appendChild(padR);
+                    }
+                    tr.appendChild(tdPadR);
+
+                    // 5. Right Label
+                    let tdRight = document.createElement('td');
+                    tdRight.className = 'coord-v';
+                    tdRight.innerText = label;
+                    tr.appendChild(tdRight);
+
+                    tbody.appendChild(tr);
+                }
+                table.appendChild(tbody);
+
+                // --- FOOTER (Letters) ---
+                let tfoot = document.createElement('tfoot');
+                let trBot = document.createElement('tr');
+                trBot.appendChild(document.createElement('th'));
+                trBot.appendChild(document.createElement('th'));
+                for (let c = 0; c < cols; c++) {
+                    let th = document.createElement('th');
+                    th.className = 'coord-h';
+                    th.innerText = getColLabel(c);
+                    trBot.appendChild(th);
+                }
+                trBot.appendChild(document.createElement('th'));
+                trBot.appendChild(document.createElement('th'));
+                tfoot.appendChild(trBot);
+                table.appendChild(tfoot);
+
+                pcbFrame.appendChild(table);
+                
+                // --- DIMENSIONS SILKSCREEN ---
+                const dims = document.createElement('div');
+                dims.className = 'pcb-dimensions';
+                dims.innerText = sizeText;
+                pcbFrame.appendChild(dims);
+
+                unit.appendChild(pcbFrame);
+                container.appendChild(unit);
+            }
+        }
+
+        function getColLabel(index) {
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            let label = "";
+            index++; 
+            while (index > 0) {
+                let rem = (index - 1) % 26;
+                label = alphabet[rem] + label;
+                index = Math.floor((index - 1) / 26);
+            }
+            return label;
+        }
+
+        generateProject();
+    </script>
+</body>
+</html>
