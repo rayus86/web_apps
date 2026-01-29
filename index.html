@@ -3,32 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Interactive Web Apps</title>
+  <title>Interactive Web Apps - Educational Tools & Simulations</title>
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <meta name="description" content="Small interactive pages for teaching and embedding (potentiometer divider, charts, animations)." />
 </head>
 <body>
   <header>
-    <h1>Interactive Web Apps</h1>
+    <h1><i class="fas fa-code"></i> Interactive Web Apps</h1>
     <p>Select a page to open or embed in your presentation / LMS.</p>
+    
+    <div class="search-container">
+      <i class="fas fa-search search-icon"></i>
+      <input 
+        type="search" 
+        id="searchInput" 
+        class="search-input" 
+        placeholder="Search for tools, demos, or simulations..." 
+        aria-label="Search pages"
+      />
+    </div>
   </header>
+  
   <main>
-    <ul class="page-list" id="pageList">
-      <li><a href="pages/unified-PWM-demonstration.html" target="_blank">Unified PWM Demonstration</a></li>
-      <li><a href="pages/potentiometer-divider.html" target="_blank">Potentiometer Voltage Divider</a></li>
-      <li><a href="pages/demo-chart.html" target="_blank">Demo Chart</a></li>
-      <li><a href="pages/animation.html" target="_blank">Animation Sample</a></li>
-      <li><a href="pages/AngularVelocityConverter.html" target="_blank">Angular Velocity Converter</a></li>
-      <li><a href="pages/AngularVelocity.html" target="_blank">Angular Velocity (V2)</a></li>
-      
-      <li><a href="pages/AngularVelocityx.html" target="_blank">Angular Velocity X</a></li>
-      <li><a href="pages/PWM-Servo-Control-Simulation.html" target="_blank">PWM Servo Control Simulation</a></li>
-      <li><a href="pages/perfboard.html" target="_blank">Perfboard Tool</a></li>
-      <li><a href="pages/ledChaser" target="_blank">LED Chaser</a></li>
-    </ul>
+    <section class="category-section" data-category="demos">
+      <h2><i class="fas fa-chart-line"></i> Demos & Visualizations</h2>
+      <ul class="page-list">
+        <li data-keywords="chart data visualization streaming demo">
+          <a href="pages/demo-chart.html" target="_blank">
+            <i class="fas fa-chart-bar"></i>
+            <span class="link-text">Demo Chart</span>
+            <span class="link-description">Streaming Chart.js example</span>
+          </a>
+        </li>
+        <li data-keywords="animation css sample transition">
+          <a href="pages/animation.html" target="_blank">
+            <i class="fas fa-play-circle"></i>
+            <span class="link-text">Animation Sample</span>
+            <span class="link-description">CSS/JS animation demo</span>
+          </a>
+        </li>
+        <li data-keywords="led chaser light animation sequence">
+          <a href="pages/ledChaser.html" target="_blank">
+            <i class="fas fa-lightbulb"></i>
+            <span class="link-text">LED Chaser</span>
+            <span class="link-description">LED animation sequence</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="category-section" data-category="simulations">
+      <h2><i class="fas fa-microchip"></i> Electronics Simulations</h2>
+      <ul class="page-list">
+        <li data-keywords="pwm pulse width modulation unified demonstration">
+          <a href="pages/unified-PWM-demonstration.html" target="_blank">
+            <i class="fas fa-wave-square"></i>
+            <span class="link-text">Unified PWM Demonstration</span>
+            <span class="link-description">PWM signal visualization</span>
+          </a>
+        </li>
+        <li data-keywords="pwm servo control simulation motor">
+          <a href="pages/PWM-Servo-Control-Simulation.html" target="_blank">
+            <i class="fas fa-cog"></i>
+            <span class="link-text">PWM Servo Control Simulation</span>
+            <span class="link-description">Servo motor control demo</span>
+          </a>
+        </li>
+        <li data-keywords="potentiometer voltage divider resistor">
+          <a href="pages/potentiometer-divider.html" target="_blank">
+            <i class="fas fa-sliders-h"></i>
+            <span class="link-text">Potentiometer Voltage Divider</span>
+            <span class="link-description">Interactive voltage divider</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="category-section" data-category="converters">
+      <h2><i class="fas fa-exchange-alt"></i> Converters & Calculators</h2>
+      <ul class="page-list">
+        <li data-keywords="angular velocity converter rpm rad calculation">
+          <a href="pages/AngularVelocityConverter.html" target="_blank">
+            <i class="fas fa-sync-alt"></i>
+            <span class="link-text">Angular Velocity Converter</span>
+            <span class="link-description">Convert between units</span>
+          </a>
+        </li>
+        <li data-keywords="angular velocity v2 version calculation">
+          <a href="pages/AngularVelocity.html" target="_blank">
+            <i class="fas fa-rotate"></i>
+            <span class="link-text">Angular Velocity (V2)</span>
+            <span class="link-description">Enhanced velocity calculator</span>
+          </a>
+        </li>
+        <li data-keywords="angular velocity x extended calculation">
+          <a href="pages/AngularVelocityx.html" target="_blank">
+            <i class="fas fa-tachometer-alt"></i>
+            <span class="link-text">Angular Velocity X</span>
+            <span class="link-description">Extended velocity features</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="category-section" data-category="tools">
+      <h2><i class="fas fa-tools"></i> Design Tools</h2>
+      <ul class="page-list">
+        <li data-keywords="perfboard pcb prototype circuit design">
+          <a href="pages/perfboard.html" target="_blank">
+            <i class="fas fa-th"></i>
+            <span class="link-text">Perfboard Tool</span>
+            <span class="link-description">Circuit board designer</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+    
+    <div id="noResults" class="no-results" style="display: none;">
+      <i class="fas fa-search"></i>
+      <p>No pages found matching your search.</p>
+    </div>
   </main>
+  
   <footer>
-    <p>Repository Content &copy; 2024</p>
+    <p>Repository Content &copy; 2024 | <a href="https://github.com/rayus86/web_apps" target="_blank">View on GitHub</a></p>
   </footer>
+
+  <script>
+    // Live search functionality
+    const searchInput = document.getElementById('searchInput');
+    const categorySections = document.querySelectorAll('.category-section');
+    const noResults = document.getElementById('noResults');
+    
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase().trim();
+      let hasVisibleItems = false;
+      
+      categorySections.forEach(section => {
+        const items = section.querySelectorAll('li');
+        let sectionHasVisible = false;
+        
+        items.forEach(item => {
+          const text = item.textContent.toLowerCase();
+          const keywords = item.dataset.keywords || '';
+          const matches = text.includes(searchTerm) || keywords.includes(searchTerm);
+          
+          if (matches || searchTerm === '') {
+            item.style.display = '';
+            sectionHasVisible = true;
+            hasVisibleItems = true;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+        
+        section.style.display = sectionHasVisible || searchTerm === '' ? '' : 'none';
+      });
+      
+      noResults.style.display = hasVisibleItems || searchTerm === '' ? 'none' : 'block';
+    });
+
+    // Add smooth scroll behavior
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Add animation on page load
+    window.addEventListener('load', () => {
+      document.querySelectorAll('.category-section').forEach((section, index) => {
+        section.style.animationDelay = `${index * 0.1}s`;
+      });
+    });
+  </script>
 </body>
 </html>
