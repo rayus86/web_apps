@@ -40,7 +40,6 @@
 }
 
 body { 
-  margin: 0;
   background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-primary) 50%, var(--bg-gradient-end) 100%);
   background-attachment: fixed;
   color: var(--text);
@@ -57,7 +56,21 @@ header, footer, main {
 header {
   text-align: center;
   padding: 3rem 1rem 2rem;
-  animation: fadeInDown 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  header {
+    animation: fadeInDown 0.6s ease-out;
+  }
+}
+
+/* Shared gradient text style */
+.gradient-text, header h1, header h1 i, .page-list a i {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: var(--accent); /* Fallback for browsers that don't support background-clip: text */
 }
 
 header h1 { 
@@ -65,18 +78,10 @@ header h1 {
   font-size: 2.5rem;
   font-weight: 700;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   filter: drop-shadow(0 2px 12px var(--shadow));
 }
 
 header h1 i {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin-right: 0.5rem;
 }
 
@@ -101,7 +106,12 @@ a:hover, a:focus-visible {
   position: relative;
   max-width: 600px;
   margin: 0 auto;
-  animation: fadeIn 0.6s ease-out 0.2s both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .search-container {
+    animation: fadeIn 0.6s ease-out 0.2s both;
+  }
 }
 
 .search-icon {
@@ -139,7 +149,17 @@ a:hover, a:focus-visible {
 /* Category Sections */
 .category-section {
   margin: 3rem 0;
-  animation: fadeInUp 0.6s ease-out both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .category-section {
+    animation: fadeInUp 0.6s ease-out both;
+  }
+  
+  .category-section:nth-child(1) { animation-delay: 0s; }
+  .category-section:nth-child(2) { animation-delay: 0.1s; }
+  .category-section:nth-child(3) { animation-delay: 0.2s; }
+  .category-section:nth-child(4) { animation-delay: 0.3s; }
 }
 
 .category-section h2 {
@@ -203,10 +223,6 @@ a:hover, a:focus-visible {
 
 .page-list a i {
   font-size: 2rem;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   margin-bottom: 0.25rem;
 }
 
@@ -496,8 +512,10 @@ input[type=range] {
 }
 
 /* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 /* Potentiometer Diagram - Dark theme preserved for embedded pages */
 .pot-diagram { 
