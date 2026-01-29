@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CD4017 Sound Activated LED Chaser Simulation</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --pcb-color: #2e7d32;
+            --component-color: #333;
+            --led-off-color: #500;
+            --led-on-base-color: #ff0000;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        /* PCB Board Simulation */
+        .circuit-board {
+            background-color: var(--pcb-color);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            border: 4px solid #1b5e20;
+        }
+
+        /* IC Chip Visual */
+        .ic-chip {
+            width: 200px;
+            height: 60px;
+            background-color: #1a1a1a;
+            margin-top: 20px;
+            border-radius: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+            font-family: monospace;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+            border: 1px solid #444;
+        }
+        .ic-chip::before { /* Notch */
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: var(--pcb-color);
+            border-radius: 50%;
+        }
+
+        /* LED Container */
+        .led-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .led-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .led-label {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+
+        .led {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: var(--led-off-color);
+            border: 2px solid rgba(0,0,0,0.2);
+            transition: background-color 0.05s, box-shadow 0.05s;
+            position: relative;
+        }
+
+        /* The glass reflection effect on LED */
+        .led::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+        }
+
+        /* Carry Out LED (D11) */
+        .aux-led-container {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Microphone Visual */
+        .mic-visual {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: silver;
+            border: 4px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mic-visual::after {
+            content: 'MK1';
+            position: absolute;
+            bottom: -25px;
+            color: white;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        /* Inputs Styling */
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+        
+        .voltage-toggle {
+            display: flex;
+            gap: 15px;
+            background: #eee;
+            padding: 5px;
+            border-radius: 20px;
+        }
+        
+        .voltage-option {
+            padding: 5px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        input[type="radio"] {
+            display: none;
+        }
+        
+        input[type="radio"]:checked + span {
+            background: #007bff;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .info {
+            margin-top: 20px;
+            color: #666;
+            font-size: 0.9em;
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Circuit Simulation: Sound Activated LED Chaser</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Power Supply Voltage (VCC)</label>
+            <div class="voltage-toggle">
+                <label>
+                    <input type="radio" name="voltage" value="3" onchange="updateVoltage(3)">
+                    <span>3V</span>
+                </label>
+                <label>
+                    <input type="radio" name="voltage" value="4.5" checked onchange="updateVoltage(4.5)">
+                    <span>4.5V</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="volume">Mic Volume / Sound Level</label>
+            <input type="range" id="volume" min="0" max="100" value="0">
+            <span id="vol-label" style="font-size: 0.8em; color: #777;">Slide to simulate sound</span>
+        </div>
+    </div>
+
+    <div class="circuit-board">
+        <div class="led-row" id="led-container">
+            </div>
+
+        <div class="ic-chip">CD4017 BE</div>
+
+        <div class="aux-led-container">
+            <div class="led-label">D11 (CO)</div>
+            <div class="led" id="led-11"></div>
+        </div>
+
+        <div class="mic-visual" id="mic">
+            <div style="width: 20px; height: 2px; background: #666;"></div>
+        </div>
+    </div>
+
+    <div class="info">
+        <p><strong>How it works:</strong> The volume slider simulates sound entering the Microphone (MK1). This signal is amplified by the transistor to clock the CD4017. <br>
+        <strong>High Volume:</strong> Fast switching. <strong>Low Volume:</strong> Slow switching. <br>
+        <strong>Voltage:</strong> Switching between 3V and 4.5V changes the LED brightness.</p>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const TOTAL_LEDS = 10; // D1 to D10
+        const ledContainer = document.getElementById('led-container');
+        const led11 = document.getElementById('led-11');
+        const volumeSlider = document.getElementById('volume');
+        
+        let currentActiveLed = 0; // 0 to 9 representing Q0 to Q9
+        let lastTime = 0;
+        let accumulator = 0;
+        
+        // Simulation State
+        let currentVoltage = 4.5;
+        let currentVolume = 0; 
+        
+        // --- Initialization ---
+        function init() {
+            // Create D1-D10 LEDs
+            for (let i = 0; i < TOTAL_LEDS; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'led-wrapper';
+                
+                const label = document.createElement('div');
+                label.className = 'led-label';
+                label.innerText = `D${i+1}`;
+                
+                const led = document.createElement('div');
+                led.className = 'led';
+                led.id = `led-${i}`;
+                
+                wrapper.appendChild(label);
+                wrapper.appendChild(led);
+                ledContainer.appendChild(wrapper);
+            }
+            
+            // Start Animation Loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Core Logic ---
+
+        function updateVoltage(vol) {
+            currentVoltage = parseFloat(vol);
+            renderLeds(); // Immediate update of brightness
+        }
+
+        volumeSlider.addEventListener('input', (e) => {
+            currentVolume = parseInt(e.target.value);
+        });
+
+        // Calculate LED visual properties based on voltage
+        function getLedStyle(isOn) {
+            if (!isOn) {
+                return {
+                    backgroundColor: 'var(--led-off-color)',
+                    boxShadow: 'none'
+                };
+            }
+
+            // Brightness Logic
+            // 3V is dimmer, 4.5V is brighter
+            // We simulate this via opacity/glow intensity
+            let brightness = (currentVoltage === 4.5) ? 1.0 : 0.6; 
+            let glowSize = (currentVoltage === 4.5) ? '20px' : '10px';
+            
+            return {
+                backgroundColor: 'var(--led-on-base-color)',
+                boxShadow: `0 0 ${glowSize} rgba(255, 0, 0, ${brightness})`,
+                filter: `brightness(${brightness * 100 + 20}%)` // Extra pop
+            };
+        }
+
+        function applyStyle(element, styleObj) {
+            element.style.backgroundColor = styleObj.backgroundColor;
+            element.style.boxShadow = styleObj.boxShadow;
+            element.style.filter = styleObj.filter || 'none';
+        }
+
+        // Render the current state of LEDs
+        function renderLeds() {
+            // 1. Render D1-D10 (Q0-Q9)
+            for (let i = 0; i < TOTAL_LEDS; i++) {
+                const led = document.getElementById(`led-${i}`);
+                // CD4017 sets only ONE output High at a time
+                const isOn = (i === currentActiveLed);
+                applyStyle(led, getLedStyle(isOn));
+            }
+
+            // 2. Render D11 (Carry Out / Pin 12)
+            // The CD4017 Carry Out is High for counts 0-4, Low for 5-9
+            const isCarryOutHigh = (currentActiveLed <= 4); 
+            // Note: In schematic, D11 lights up when pin 12 is HIGH (assuming standard active-high wiring for D11 logic)
+            applyStyle(led11, getLedStyle(isCarryOutHigh));
+        }
+
+        // Animation Loop
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Logic: The "Volume" drives the clock frequency.
+            // Volume 0 = No clock.
+            // Volume 100 = Max speed.
+            
+            if (currentVolume > 0) {
+                // Map volume to delay in milliseconds
+                // Low volume = High delay (slow)
+                // High volume = Low delay (fast)
+                
+                // Example mapping: 
+                // Vol 1 -> 1000ms delay
+                // Vol 100 -> 20ms delay
+                const minDelay = 20;
+                const maxDelay = 1000;
+                
+                // Inverse relationship
+                const factor = (100 - currentVolume) / 100; // 1.0 down to 0.0
+                const delay = minDelay + (factor * (maxDelay - minDelay));
+
+                accumulator += deltaTime;
+
+                if (accumulator >= delay) {
+                    // Clock Tick
+                    currentActiveLed++;
+                    if (currentActiveLed >= TOTAL_LEDS) {
+                        currentActiveLed = 0;
+                    }
+                    accumulator = 0;
+                }
+            } else {
+                // If volume is 0, we can choose to reset or pause. 
+                // Pausing is more realistic for "silence".
+                accumulator = 0;
+            }
+
+            renderLeds();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Run
+        init();
+        // Initial render
+        renderLeds();
+
+    </script>
+</body>
+</html>
