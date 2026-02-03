@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GSMST | Power Integrity Lab</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .lab-bench { background: #111; border: 2px solid #333; padding: 20px; border-radius: 10px; width: 800px; box-shadow: 0 0 50px rgba(0,255,0,0.1); }
+        canvas { background: #050505; border: 1px solid #222; width: 100%; height: 350px; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 25px; background: #1a1a1a; padding: 20px; border-radius: 8px; }
+        .slider-box { display: flex; flex-direction: column; gap: 10px; }
+        input[type=range] { cursor: pointer; accent-color: #0f0; }
+        .btn { padding: 15px; cursor: pointer; border: 1px solid #0f0; background: transparent; color: #0f0; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: #0f0; color: #000; }
+        .btn.active { background: #0088ff; border-color: #0088ff; color: #fff; }
+        .label { font-size: 0.8em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .val { color: #fff; float: right; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="lab-bench">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+        <h2 style="margin: 0; color: #fff;">OSCILLOSCOPE: VCC_RAIL</h2>
+        <span id="status" style="color: #ff4444;">[ SYSTEM: UNSTABLE ]</span>
+    </div>
+    
+    <canvas id="scope"></canvas>
+    
+    <div class="controls">
+        <div class="slider-box">
+            <button id="capBtn" class="btn" onclick="toggleCap()">ENGAGE RESERVOIR (C2)</button>
+            <div style="margin-top: 15px;">
+                <label class="label">Line Resistance (Impedance) <span id="rText" class="val">10.0 Ω</span></label>
+                <input type="range" id="rSlider" min="1" max="30" step="1" value="15" oninput="sync()">
+            </div>
+        </div>
+
+        <div class="slider-box">
+            <label class="label">Switching Load (LED Cluster) <span id="iText" class="val">100 mA</span></label>
+            <input type="range" id="iSlider" min="20" max="250" step="10" value="120" oninput="sync()">
+            <div style="margin-top: 10px; font-size: 0.7em; color: #666; line-height: 1.5;">
+                <span style="color: #0f0;">──</span> RAW (UNBUFFERED)<br>
+                <span style="color: #0088ff;">━━</span> BUFFERED (100μF)<br>
+                <span style="color: #444;">--</span> LOGIC THRESHOLD (3.5V)
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('scope');
+    const ctx = canvas.getContext('2d');
+    let capOn = false;
+    let vSmooth = 5.0;
+    let historyRaw = new Array(800).fill(5);
+    let historyCap = new Array(800).fill(5);
+    let frame = 0;
+
+    function toggleCap() {
+        capOn = !capOn;
+        const btn = document.getElementById('capBtn');
+        btn.classList.toggle('active');
+        document.getElementById('status').innerText = capOn ? '[ SYSTEM: STABILIZED ]' : '[ SYSTEM: UNSTABLE ]';
+        document.getElementById('status').style.color = capOn ? '#0088ff' : '#ff4444';
+    }
+
+    function sync() {
+        document.getElementById('rText').innerText = document.getElementById('rSlider').value + ' Ω';
+        document.getElementById('iText').innerText = document.getElementById('iSlider').value + ' mA';
+    }
+
+    function loop() {
+        frame++;
+        const R = parseFloat(document.getElementById('rSlider').value);
+        const I = parseFloat(document.getElementById('iSlider').value) / 1000;
+        
+        // Steady clock pulse
+        const isLoadOn = (frame % 100 < 40); 
+        const vRaw = isLoadOn ? (5.0 - (I * R)) : 5.0;
+
+        if (capOn) {
+            // Smooth pursuit math: vSmooth moves toward vRaw based on RC timing
+            const rate = isLoadOn ? 0.02 : 0.08; 
+            vSmooth += (vRaw - vSmooth) * rate;
+        } else {
+            vSmooth = vRaw;
+        }
+
+        historyRaw.push(vRaw); historyRaw.shift();
+        historyCap.push(vSmooth); historyCap.shift();
+
+        // Render logic
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        
+        // Grid & Threshold
+        ctx.strokeStyle = '#222'; ctx.lineWidth = 1;
+        for(let i=1; i<=5; i++) {
+            let y = 350 - (i * 60);
+            ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(800,y); ctx.stroke();
+            ctx.fillStyle = '#444'; ctx.fillText(i+'V', 5, y-5);
+        }
+        
+        // 3.5V Logic Threshold Line
+        ctx.strokeStyle = '#311'; ctx.setLineDash([5,5]);
+        ctx.beginPath(); ctx.moveTo(0, 350 - (3.5*60)); ctx.lineTo(800, 350 - (3.5*60)); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Plotting
+        const plot = (data, color, width) => {
+            ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+            data.forEach((v, x) => {
+                let y = 350 - (v * 60);
+                if(x===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        };
+
+        plot(historyRaw, '#050', 1); // Ghost of the raw signal
+        plot(historyCap, capOn ? '#0088ff' : '#0f0', capOn ? 3 : 2);
+
+        requestAnimationFrame(loop);
+    }
+
+    canvas.width = 800; canvas.height = 350;
+    sync();
+    loop();
+</script>
+</body>
+</html>
