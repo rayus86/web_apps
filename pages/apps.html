@@ -675,18 +675,19 @@
       const minV = Math.min(...voltages);
       const avgV = voltages.reduce((a, b) => a + b, 0) / voltages.length;
       
-      // Calculate RMS
-      const squaredDiffs = voltages.map(v => Math.pow(v - avgV, 2));
-      const rms = Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / voltages.length);
+      // Calculate true RMS voltage
+      const squaredVoltages = voltages.map(v => Math.pow(v, 2));
+      const rmsVoltage_calc = Math.sqrt(squaredVoltages.reduce((a, b) => a + b, 0) / voltages.length);
       
       // Peak-to-peak
       peakToPeak.textContent = (maxV - minV).toFixed(3) + 'V';
       
-      // RMS voltage
-      rmsVoltage.textContent = avgV.toFixed(3) + 'V';
+      // RMS voltage (true RMS)
+      rmsVoltage.textContent = rmsVoltage_calc.toFixed(3) + 'V';
       
-      // Frequency (estimate from ripple)
-      frequency.textContent = '100Hz';
+      // Frequency (from ripple frequency constant)
+      const rippleFreq = 100; // Hz - matches the frequency in calculateVoltage
+      frequency.textContent = rippleFreq + 'Hz';
       
       // Stability (based on deviation from nominal)
       const deviation = Math.abs(avgV - state.nominalVoltage);
