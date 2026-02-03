@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GSMST Power Integrity Lab - Oscilloscope Simulation</title>
+<meta name="description" content="Interactive oscilloscope simulation for monitoring VCC rail power integrity with signal stability analysis">
+<style>
+  :root {
+    --console-bg: #001a00;
+    --console-panel: #002200;
+    --console-green: #00ff00;
+    --console-green-dim: #00aa00;
+    --console-green-bright: #88ff88;
+    --grid-color: #003300;
+    --warning-color: #ffaa00;
+    --danger-color: #ff3333;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    background: var(--console-bg);
+    color: var(--console-green);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    background: var(--console-panel);
+    border: 2px solid var(--console-green);
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    padding: 20px;
+  }
+  
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--console-green-dim);
+    padding-bottom: 15px;
+  }
+  
+  h1 {
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    text-shadow: 0 0 10px var(--console-green);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  
+  .subtitle {
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    color: var(--console-green-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .oscilloscope-screen {
+    background: #000;
+    border: 3px solid var(--console-green);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    position: relative;
+    box-shadow: inset 0 0 30px rgba(0, 255, 0, 0.1);
+  }
+  
+  .screen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .voltage-display {
+    font-size: clamp(1.2rem, 2vw, 1.8rem);
+    font-weight: bold;
+    text-shadow: 0 0 8px var(--console-green);
+  }
+  
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  }
+  
+  .status-led {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  .status-stable .status-led {
+    background: var(--console-green);
+    box-shadow: 0 0 10px var(--console-green);
+  }
+  
+  .status-unstable .status-led {
+    background: var(--warning-color);
+    box-shadow: 0 0 10px var(--warning-color);
+  }
+  
+  .status-critical .status-led {
+    background: var(--danger-color);
+    box-shadow: 0 0 10px var(--danger-color);
+    animation: pulse 0.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  
+  #waveformCanvas {
+    width: 100%;
+    height: 300px;
+    border: 1px solid var(--grid-color);
+    background: #000;
+    display: block;
+  }
+  
+  .controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .control-group {
+    background: var(--console-bg);
+    border: 1px solid var(--console-green-dim);
+    border-radius: 6px;
+    padding: 15px;
+  }
+  
+  .control-group h3 {
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    margin-bottom: 12px;
+    color: var(--console-green-bright);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  .control-item {
+    margin-bottom: 15px;
+  }
+  
+  .control-item:last-child {
+    margin-bottom: 0;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+    color: var(--console-green-dim);
+  }
+  
+  input[type="range"] {
+    width: 100%;
+    height: 8px;
+    background: var(--console-bg);
+    border: 1px solid var(--console-green-dim);
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--console-green);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--console-green);
+  }
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--console-green);
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 0 8px var(--console-green);
+  }
+  
+  .value-display {
+    display: inline-block;
+    background: var(--console-bg);
+    border: 1px solid var(--console-green-dim);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    min-width: 70px;
+    text-align: center;
+  }
+  
+  .button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  button {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 20px;
+    background: var(--console-bg);
+    color: var(--console-green);
+    border: 2px solid var(--console-green);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: clamp(0.85rem, 1.4vw, 0.95rem);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  button:hover {
+    background: var(--console-green);
+    color: var(--console-bg);
+    box-shadow: 0 0 15px var(--console-green);
+  }
+  
+  button:active {
+    transform: scale(0.98);
+  }
+  
+  button.active {
+    background: var(--console-green);
+    color: var(--console-bg);
+  }
+  
+  .stats-panel {
+    background: var(--console-bg);
+    border: 1px solid var(--console-green-dim);
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 20px;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-label {
+    font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+    color: var(--console-green-dim);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  
+  .stat-value {
+    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+    font-weight: bold;
+    color: var(--console-green-bright);
+  }
+  
+  footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--console-green-dim);
+    font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+    color: var(--console-green-dim);
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding: 10px;
+    }
+    
+    .container {
+      padding: 15px;
+    }
+    
+    #waveformCanvas {
+      height: 200px;
+    }
+    
+    .controls-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ GSMST POWER INTEGRITY LAB ⚡</h1>
+      <div class="subtitle">Oscilloscope Simulation - VCC Rail Monitor</div>
+    </header>
+    
+    <div class="oscilloscope-screen">
+      <div class="screen-header">
+        <div class="voltage-display">VCC: <span id="vccValue">5.00</span>V</div>
+        <div class="status-indicator status-stable" id="statusIndicator">
+          <div class="status-led"></div>
+          <span id="statusText">STABLE</span>
+        </div>
+      </div>
+      
+      <canvas id="waveformCanvas"></canvas>
+    </div>
+    
+    <div class="controls-grid">
+      <div class="control-group">
+        <h3>⚙️ Signal Parameters</h3>
+        <div class="control-item">
+          <label>Nominal Voltage: <span class="value-display" id="nominalVoltageDisplay">5.00V</span></label>
+          <input type="range" id="nominalVoltage" min="3.0" max="12.0" step="0.1" value="5.0">
+        </div>
+        <div class="control-item">
+          <label>Load Current: <span class="value-display" id="loadCurrentDisplay">500mA</span></label>
+          <input type="range" id="loadCurrent" min="0" max="3000" step="50" value="500">
+        </div>
+        <div class="control-item">
+          <label>Ripple Amplitude: <span class="value-display" id="rippleDisplay">50mV</span></label>
+          <input type="range" id="ripple" min="0" max="500" step="10" value="50">
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h3>📊 Display Settings</h3>
+        <div class="control-item">
+          <label>Time Scale: <span class="value-display" id="timeScaleDisplay">10ms</span></label>
+          <input type="range" id="timeScale" min="1" max="100" step="1" value="10">
+        </div>
+        <div class="control-item">
+          <label>Update Rate: <span class="value-display" id="updateRateDisplay">60Hz</span></label>
+          <input type="range" id="updateRate" min="10" max="120" step="10" value="60">
+        </div>
+        <div class="control-item">
+          <label>Waveform Color</label>
+          <div class="button-group">
+            <button id="colorGreen" class="active" data-color="#00ff00">Green</button>
+            <button id="colorYellow" data-color="#ffff00">Yellow</button>
+            <button id="colorCyan" data-color="#00ffff">Cyan</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h3>🔧 Test Conditions</h3>
+        <div class="control-item">
+          <label>Simulation Mode</label>
+          <div class="button-group">
+            <button id="modeNormal" class="active" data-mode="normal">Normal</button>
+            <button id="modeNoisy" data-mode="noisy">Noisy</button>
+            <button id="modeCritical" data-mode="critical">Critical</button>
+          </div>
+        </div>
+        <div class="control-item">
+          <label>Actions</label>
+          <div class="button-group">
+            <button id="resetBtn">Reset</button>
+            <button id="freezeBtn">Freeze</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stats-panel">
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Peak-to-Peak</div>
+          <div class="stat-value" id="peakToPeak">0.10V</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">RMS Voltage</div>
+          <div class="stat-value" id="rmsVoltage">5.00V</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Frequency</div>
+          <div class="stat-value" id="frequency">100Hz</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Stability</div>
+          <div class="stat-value" id="stability">99%</div>
+        </div>
+      </div>
+    </div>
+    
+    <footer>
+      © 2024 GSMST Power Integrity Lab | Educational Simulation Tool
+    </footer>
+  </div>
+
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('waveformCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas resolution
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Simulation state
+    let state = {
+      nominalVoltage: 5.0,
+      loadCurrent: 500,
+      ripple: 50,
+      timeScale: 10,
+      updateRate: 60,
+      waveformColor: '#00ff00',
+      mode: 'normal',
+      frozen: false,
+      time: 0,
+      dataPoints: []
+    };
+    
+    // Control elements
+    const nominalVoltageSlider = document.getElementById('nominalVoltage');
+    const loadCurrentSlider = document.getElementById('loadCurrent');
+    const rippleSlider = document.getElementById('ripple');
+    const timeScaleSlider = document.getElementById('timeScale');
+    const updateRateSlider = document.getElementById('updateRate');
+    
+    const nominalVoltageDisplay = document.getElementById('nominalVoltageDisplay');
+    const loadCurrentDisplay = document.getElementById('loadCurrentDisplay');
+    const rippleDisplay = document.getElementById('rippleDisplay');
+    const timeScaleDisplay = document.getElementById('timeScaleDisplay');
+    const updateRateDisplay = document.getElementById('updateRateDisplay');
+    
+    const vccValue = document.getElementById('vccValue');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const statusText = document.getElementById('statusText');
+    
+    const peakToPeak = document.getElementById('peakToPeak');
+    const rmsVoltage = document.getElementById('rmsVoltage');
+    const frequency = document.getElementById('frequency');
+    const stability = document.getElementById('stability');
+    
+    // Event listeners for sliders
+    nominalVoltageSlider.addEventListener('input', (e) => {
+      state.nominalVoltage = parseFloat(e.target.value);
+      nominalVoltageDisplay.textContent = state.nominalVoltage.toFixed(2) + 'V';
+    });
+    
+    loadCurrentSlider.addEventListener('input', (e) => {
+      state.loadCurrent = parseInt(e.target.value);
+      loadCurrentDisplay.textContent = state.loadCurrent + 'mA';
+    });
+    
+    rippleSlider.addEventListener('input', (e) => {
+      state.ripple = parseInt(e.target.value);
+      rippleDisplay.textContent = state.ripple + 'mV';
+    });
+    
+    timeScaleSlider.addEventListener('input', (e) => {
+      state.timeScale = parseInt(e.target.value);
+      timeScaleDisplay.textContent = state.timeScale + 'ms';
+    });
+    
+    updateRateSlider.addEventListener('input', (e) => {
+      state.updateRate = parseInt(e.target.value);
+      updateRateDisplay.textContent = state.updateRate + 'Hz';
+    });
+    
+    // Color button handlers
+    const colorButtons = document.querySelectorAll('[data-color]');
+    colorButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        colorButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        state.waveformColor = button.dataset.color;
+      });
+    });
+    
+    // Mode button handlers
+    const modeButtons = document.querySelectorAll('[data-mode]');
+    modeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        modeButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        state.mode = button.dataset.mode;
+      });
+    });
+    
+    // Action buttons
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state.time = 0;
+      state.dataPoints = [];
+      nominalVoltageSlider.value = 5.0;
+      loadCurrentSlider.value = 500;
+      rippleSlider.value = 50;
+      timeScaleSlider.value = 10;
+      updateRateSlider.value = 60;
+      
+      state.nominalVoltage = 5.0;
+      state.loadCurrent = 500;
+      state.ripple = 50;
+      state.timeScale = 10;
+      state.updateRate = 60;
+      
+      nominalVoltageDisplay.textContent = '5.00V';
+      loadCurrentDisplay.textContent = '500mA';
+      rippleDisplay.textContent = '50mV';
+      timeScaleDisplay.textContent = '10ms';
+      updateRateDisplay.textContent = '60Hz';
+      
+      modeButtons.forEach(btn => btn.classList.remove('active'));
+      document.getElementById('modeNormal').classList.add('active');
+      state.mode = 'normal';
+    });
+    
+    document.getElementById('freezeBtn').addEventListener('click', function() {
+      state.frozen = !state.frozen;
+      this.textContent = state.frozen ? 'Resume' : 'Freeze';
+      this.classList.toggle('active');
+    });
+    
+    // Calculate voltage with noise and ripple
+    function calculateVoltage(time) {
+      let voltage = state.nominalVoltage;
+      
+      // Add ripple (sine wave)
+      const rippleFreq = 100; // Hz
+      const rippleAmount = (state.ripple / 1000) * Math.sin(2 * Math.PI * rippleFreq * time);
+      voltage += rippleAmount;
+      
+      // Add mode-specific effects
+      if (state.mode === 'noisy') {
+        voltage += (Math.random() - 0.5) * 0.3;
+      } else if (state.mode === 'critical') {
+        voltage += Math.sin(2 * Math.PI * 50 * time) * 0.5;
+        voltage += (Math.random() - 0.5) * 0.5;
+      }
+      
+      // Add small load-dependent droop
+      const droop = (state.loadCurrent / 3000) * 0.2;
+      voltage -= droop;
+      
+      return voltage;
+    }
+    
+    // Update status indicator
+    function updateStatus(voltage) {
+      const deviation = Math.abs(voltage - state.nominalVoltage);
+      const percentDeviation = (deviation / state.nominalVoltage) * 100;
+      
+      statusIndicator.className = 'status-indicator';
+      
+      if (percentDeviation < 2) {
+        statusIndicator.classList.add('status-stable');
+        statusText.textContent = 'STABLE';
+      } else if (percentDeviation < 5) {
+        statusIndicator.classList.add('status-unstable');
+        statusText.textContent = 'UNSTABLE';
+      } else {
+        statusIndicator.classList.add('status-critical');
+        statusText.textContent = 'CRITICAL';
+      }
+    }
+    
+    // Draw grid
+    function drawGrid() {
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      
+      ctx.strokeStyle = '#003300';
+      ctx.lineWidth = 0.5;
+      
+      // Vertical lines
+      const vSpacing = width / 10;
+      for (let i = 0; i <= 10; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * vSpacing, 0);
+        ctx.lineTo(i * vSpacing, height);
+        ctx.stroke();
+      }
+      
+      // Horizontal lines
+      const hSpacing = height / 6;
+      for (let i = 0; i <= 6; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, i * hSpacing);
+        ctx.lineTo(width, i * hSpacing);
+        ctx.stroke();
+      }
+      
+      // Center line (thicker)
+      ctx.strokeStyle = '#004400';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+    }
+    
+    // Draw waveform
+    function drawWaveform() {
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      
+      // Clear canvas
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw grid
+      drawGrid();
+      
+      if (state.dataPoints.length < 2) return;
+      
+      // Calculate voltage range for scaling
+      const voltageRange = state.nominalVoltage * 0.4; // Show ±20% of nominal
+      const voltageMin = state.nominalVoltage - voltageRange / 2;
+      const voltageMax = state.nominalVoltage + voltageRange / 2;
+      
+      // Draw waveform
+      ctx.strokeStyle = state.waveformColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      for (let i = 0; i < state.dataPoints.length; i++) {
+        const x = (i / state.dataPoints.length) * width;
+        const voltage = state.dataPoints[i];
+        const y = height - ((voltage - voltageMin) / (voltageMax - voltageMin)) * height;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      
+      ctx.stroke();
+      
+      // Add glow effect
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = state.waveformColor;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    
+    // Update statistics
+    function updateStatistics() {
+      if (state.dataPoints.length === 0) return;
+      
+      const voltages = state.dataPoints;
+      const maxV = Math.max(...voltages);
+      const minV = Math.min(...voltages);
+      const avgV = voltages.reduce((a, b) => a + b, 0) / voltages.length;
+      
+      // Calculate true RMS voltage
+      const squaredVoltages = voltages.map(v => Math.pow(v, 2));
+      const rmsVoltage_calc = Math.sqrt(squaredVoltages.reduce((a, b) => a + b, 0) / voltages.length);
+      
+      // Peak-to-peak
+      peakToPeak.textContent = (maxV - minV).toFixed(3) + 'V';
+      
+      // RMS voltage (true RMS)
+      rmsVoltage.textContent = rmsVoltage_calc.toFixed(3) + 'V';
+      
+      // Frequency (from ripple frequency constant)
+      const rippleFreq = 100; // Hz - matches the frequency in calculateVoltage
+      frequency.textContent = rippleFreq + 'Hz';
+      
+      // Stability (based on deviation from nominal)
+      const deviation = Math.abs(avgV - state.nominalVoltage);
+      const stabilityPercent = Math.max(0, 100 - (deviation / state.nominalVoltage * 100));
+      stability.textContent = stabilityPercent.toFixed(1) + '%';
+    }
+    
+    // Animation loop
+    let lastUpdate = 0;
+    function animate(timestamp) {
+      if (!lastUpdate) lastUpdate = timestamp;
+      const deltaTime = (timestamp - lastUpdate) / 1000; // Convert to seconds
+      
+      if (!state.frozen && deltaTime >= 1 / state.updateRate) {
+        state.time += deltaTime;
+        
+        // Calculate new voltage
+        const voltage = calculateVoltage(state.time);
+        
+        // Update display
+        vccValue.textContent = voltage.toFixed(2);
+        updateStatus(voltage);
+        
+        // Store data point
+        const maxPoints = 200;
+        state.dataPoints.push(voltage);
+        if (state.dataPoints.length > maxPoints) {
+          state.dataPoints.shift();
+        }
+        
+        // Draw waveform
+        drawWaveform();
+        
+        // Update statistics
+        updateStatistics();
+        
+        lastUpdate = timestamp;
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Start animation
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
